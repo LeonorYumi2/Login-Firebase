@@ -5,7 +5,7 @@
  *   1. Cargar las fuentes.
  *   2. Envolver la app en el ProveedorSesion (para que todas las pantallas
  *      conozcan al usuario).
- *   3. Decidir qué pantallas existen según haya o no sesión (Stack.Protected).
+ *   3. Decidir qué pantallas existen según haya o no sesión y verificación (Stack.Protected).
  *   4. Mantener visible la pantalla de carga (splash) hasta tener todo listo.
  */
 import { BigShoulders_800ExtraBold } from '@expo-google-fonts/big-shoulders';
@@ -18,13 +18,13 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
- 
+
 import { colores } from '@/constants/tema';
 import { ProveedorSesion, useSesion } from '@/context/sesion';
- 
+
 // Se ejecuta al importar el módulo: evita que el splash se oculte solo.
 SplashScreen.preventAutoHideAsync();
- 
+
 export default function LayoutRaiz() {
   // useFonts de cualquier paquete @expo-google-fonts sirve para cargar fuentes
   // de distintas familias a la vez.
@@ -34,30 +34,30 @@ export default function LayoutRaiz() {
     SpaceGrotesk_500Medium,
     SpaceGrotesk_700Bold,
   });
- 
+
   return (
     <ProveedorSesion>
       <Navegacion fuentesListas={fuentesListas} />
     </ProveedorSesion>
   );
 }
- 
+
 /**
  * Está separado de LayoutRaiz porque useSesion solo funciona DENTRO del
  * ProveedorSesion, y LayoutRaiz es justamente quien lo crea.
  */
 function Navegacion({ fuentesListas }: { fuentesListas: boolean }) {
-  const { usuario, cargando } = useSesion();
+  const { usuario, verificado, cargando } = useSesion();
   const listo = fuentesListas && !cargando;
- 
+
   useEffect(() => {
     // Cuando hay fuentes y Firebase ya respondió, quitamos el splash.
     if (listo) SplashScreen.hideAsync();
   }, [listo]);
- 
+
   // Mientras tanto no dibujamos nada: el splash sigue cubriendo la pantalla.
   if (!listo) return null;
- 
+
   return (
     <Stack
       screenOptions={{
@@ -71,10 +71,14 @@ function Navegacion({ fuentesListas }: { fuentesListas: boolean }) {
         sesión estando en la bienvenida), Expo Router lo lleva a la primera
         ruta disponible. Así no hace falta escribir redirecciones a mano.
       */}
-      <Stack.Protected guard={!!usuario}>
+      <Stack.Protected guard={!!usuario && verificado}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
- 
+
+      <Stack.Protected guard={!!usuario && !verificado}>
+        <Stack.Screen name="verificar-correo" />
+      </Stack.Protected>
+
       <Stack.Protected guard={!usuario}>
         <Stack.Screen name="login" />
         <Stack.Screen name="registro" />
